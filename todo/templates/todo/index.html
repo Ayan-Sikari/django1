@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        #app {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width: 300px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .todo-input {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .todo-input input {
+            width: 70%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .todo-input button {
+            padding: 10px;
+            border: none;
+            background-color: #5cb85c;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .todo-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .todo-list li {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .todo-list li.completed {
+            text-decoration: line-through;
+            color: grey;
+        }
+        .todo-list li button {
+            margin-left: 5px;
+            padding: 5px 10px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .todo-list li button.delete {
+            background-color: #d9534f;
+            color: white;
+        }
+        .todo-list li button.complete {
+            background-color: #5bc0de;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h1>To-Do List</h1>
+        <div class="todo-input">
+            <input type="text" id="todoTitle" placeholder="Add a new task">
+            <button onclick="addTodo()">Add</button>
+        </div>
+        <ul class="todo-list" id="todoList"></ul>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8000/todos/';
+        console.log("working")
+        // Fetch todos from the API
+        function fetchTodos() {
+            fetch(API_URL)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Fetched todos:', data);  // Debugging line
+                    const todoList = document.getElementById('todoList');
+                    todoList.innerHTML = '';
+                    data.forEach(todo => {
+                        const li = document.createElement('li');
+                        li.className = todo.completed ? 'completed' : '';
+                        li.innerHTML = `
+                            <span>${todo.title}</span>
+                            <div>
+                                <button class="complete" onclick="toggleComplete(${todo.id}, ${todo.completed})">
+                                    ${todo.completed ? 'Undo' : 'Complete'}
+                                </button>
+                                <button class="delete" onclick="deleteTodo(${todo.id})">Delete</button>
+                            </div>
+                        `;
+                        todoList.appendChild(li);
+                    });
+                })
+                .catch(error => console.error('Error fetching todos:', error));  // Error handling
+        }
+
+        // Add a new todo
+        function addTodo() {
+            const todoTitle = document.getElementById('todoTitle').value;
+            if (todoTitle.trim()) {
+                fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ title: todoTitle, completed: false }),
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(() => {
+                    document.getElementById('todoTitle').value = '';
+                    fetchTodos();
+                })
+                .catch(error => console.error('Error adding todo:', error));  // Error handling
+            }
+            console.log("working")
+        }
+
+        // Delete a todo
+        function deleteTodo(id) {
+            fetch(`${API_URL}${id}/`, {
+                method: 'DELETE',
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                fetchTodos();
+            })
+            .catch(error => console.error('Error deleting todo:', error));  // Error handling
+            console.log("working")
+        }
+
+        // Toggle complete status of a todo
+        function toggleComplete(id, isCompleted) {
+            fetch(`${API_URL}${id}/`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ completed: !isCompleted }),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                fetchTodos();
+            })
+            .catch(error => console.error('Error toggling complete status:', error));  // Error handling
+            console.log("working")
+        }
+
+        // Load todos when the page is loaded
+        document.addEventListener('DOMContentLoaded', fetchTodos);
+    </script>
+</body>
+</html>
